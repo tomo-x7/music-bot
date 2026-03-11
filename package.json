@@ -11,10 +11,12 @@
   "license": "MIT",
   "packageManager": "pnpm@10.32.1",
   "devDependencies": {
+    "@biomejs/biome": "2.2.3",
     "@types/node": "^25.4.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "discord.js": "^14.25.1"
+    "discord.js": "^14.25.1",
+    "dotenv": "^17.3.1"
   }
 }
