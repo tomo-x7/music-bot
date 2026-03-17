@@ -48,7 +48,7 @@ export function raceTimer<T>(p: Promise<T>, timeout: number): Promise<T | null> 
 export const neverAbort = new AbortController().signal;
 
 const trimFilter =
-	"silenceremove=start_periods=1:start_mode=all:start_threshold=-70dB:start_duration=0.2:start_silence=0.1:stop_periods=1:stop_mode=all:stop_threshold=-70dB:stop_duration=0.2:stop_silence=0.2:detection=peak";
+	"silenceremove=start_periods=1:start_mode=all:start_threshold=-70dB:start_duration=0.2:start_silence=0.1:detection=peak,areverse,silenceremove=start_periods=1:start_mode=all:start_threshold=-70dB:start_duration=0.2:start_silence=0.2:detection=peak,areverse";
 export async function trimMusic(path: string) {
 	const file = basename(path);
 	const newFile = file.replace(/\.opus$/, ".trimmed.opus");

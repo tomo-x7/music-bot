@@ -80,10 +80,14 @@ const services = {
 } as const;
 function urlParse(url: string): keyof typeof services | null {
 	const parsed = new URL(url);
-	for (const [key, hosts] of Object.entries(services)) {
-		if (hosts.some((h) => parsed.hostname === h)) return key as keyof typeof services;
+	let key: keyof typeof services | null = null;
+	for (const [k, hosts] of Object.entries(services)) {
+		if (hosts.some((h) => parsed.hostname === h)) key = k as keyof typeof services;
 	}
-	return null;
+	if (parsed.hostname === "www.youtube.com") {
+		parsed.search = `?v=${parsed.searchParams.get("v")}`; // playlistを消す
+	}
+	return key;
 }
 
 function getMeta(url: string) {

@@ -48,6 +48,7 @@ export function getMetaYt(url: string) {
 			...print("duration"),
 			...print("thumbnail"),
 			"--no-download",
+			"--no-playlist",
 			url,
 		]);
 		child.stdout.on("data", (data) => {
