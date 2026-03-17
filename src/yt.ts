@@ -3,7 +3,7 @@ import { createWriteStream } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { APIEmbed, GuildMember } from "discord.js";
-import { mustBeNumber, mustBeString } from "./util";
+import { mustBeNumber, mustBeString, waitStreamReady } from "./util";
 
 try {
 	execSync("yt-dlp --version");
@@ -23,6 +23,7 @@ const out = (id: string) => join(import.meta.dirname, "../tmp", `${id}.${EXT}`);
 await mkdir(join(import.meta.dirname, "../log"), { recursive: true });
 const ytDlLog = createWriteStream(join(import.meta.dirname, "../log/yt-dlp-dl.log"), { flags: "a" });
 const ytMetaLog = createWriteStream(join(import.meta.dirname, "../log/yt-dlp-meta.log"), { flags: "a" });
+await Promise.all([waitStreamReady(ytDlLog), waitStreamReady(ytMetaLog)]);
 
 export function downloadYt(url: string, id: string) {
 	return new Promise<string>((resolve, reject) => {
@@ -57,7 +58,7 @@ export type YtMeta = {
 	thumbnail: string;
 	url: string;
 	channel: string;
-	channel_url: string;
+	channel_url: string | null;
 };
 export function getMetaYt(url: string) {
 	return new Promise<YtMeta>((resolve, reject) => {
@@ -86,12 +87,14 @@ export function getMetaYt(url: string) {
 					.split("\n")
 					.map((s) => s.trim())
 					.filter((s) => s.length > 0);
+				let channel_url = results[4] ? mustBeString(results[4], "yt-dlp channel_url") : null;
+				if (channel_url && !URL.canParse(channel_url)) channel_url = null;
 				resolve({
 					title: mustBeString(results[0], "yt-dlp title"),
 					duration: mustBeNumber(results[1], "yt-dlp duration"),
 					thumbnail: mustBeString(results[2], "yt-dlp thumbnail"),
 					channel: mustBeString(results[3], "yt-dlp channel"),
-					channel_url: mustBeString(results[4], "yt-dlp channel_url"),
+					channel_url,
 					url,
 				});
 			} else {
@@ -108,7 +111,7 @@ export function genEmbedYt(meta: YtMeta, requester: GuildMember): APIEmbed {
 		description: `requested by ${requester}`,
 		author: {
 			name: meta.channel,
-			url: meta.channel_url,
+			url: meta.channel_url ?? undefined,
 		},
 		image: { url: meta.thumbnail },
 	};

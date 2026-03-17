@@ -9,7 +9,7 @@ export const config = { TOKEN, SERVERID, VCID } as const;
 
 // utils
 import { spawn } from "node:child_process";
-import { createWriteStream } from "node:fs";
+import { createWriteStream, type WriteStream } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
 import { basename, join } from "node:path";
 import type { Client } from "discord.js";
@@ -50,6 +50,7 @@ export const neverAbort = new AbortController().signal;
 
 await mkdir(join(import.meta.dirname, "../log"), { recursive: true });
 const ffmpegLog = createWriteStream(join(import.meta.dirname, "../log/ffmpeg.log"), { flags: "a" });
+await waitStreamReady(ffmpegLog);
 const trimFilter =
 	"silenceremove=start_periods=1:start_mode=all:start_threshold=-70dB:start_duration=0.2:start_silence=0.1:detection=peak,areverse,silenceremove=start_periods=1:start_mode=all:start_threshold=-70dB:start_duration=0.2:start_silence=0.2:detection=peak,areverse";
 export async function trimMusic(path: string) {
@@ -69,4 +70,11 @@ export async function trimMusic(path: string) {
 	});
 	await rm(path).catch(() => {});
 	return newPath;
+}
+
+export function waitStreamReady(stream: WriteStream) {
+	return new Promise<void>((resolve, reject) => {
+		if (!stream.pending) resolve();
+		stream.once("ready", () => resolve());
+	});
 }
