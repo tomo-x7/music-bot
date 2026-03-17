@@ -7,11 +7,11 @@ const SERVERID = mustBeString(process.env.SERVER, "env.SERVER");
 
 export const config = { TOKEN, SERVERID, VCID } as const;
 
+import { spawn } from "node:child_process";
+import { rm } from "node:fs/promises";
+import { basename } from "node:path";
 // utils
 import type { Client } from "discord.js";
-import { spawn } from "node:child_process";
-import { basename } from "node:path";
-import { rm } from "node:fs/promises";
 
 export function waitReady(client: Client) {
 	return new Promise<void>((resolve) => {

@@ -1,7 +1,7 @@
-import { AudioResource, createAudioResource } from "@discordjs/voice";
-import { downloadYt, getMetaYt } from "./yt";
-import { assertNever, trimMusic } from "./util";
 import { rm } from "node:fs/promises";
+import { type AudioResource, createAudioResource } from "@discordjs/voice";
+import { assertNever, trimMusic } from "./util";
+import { downloadYt, getMetaYt } from "./yt";
 
 export type MusicQueueItem = {
 	id: number;

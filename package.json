@@ -5,7 +5,8 @@
 	"main": "index.js",
 	"scripts": {
 		"check": "biome check --write",
-		"register": "tsx -e 'require(\"./src/commands\").register()'","start":"tsx src/main.ts"
+		"register": "tsx -e 'require(\"./src/commands\").register()'",
+		"start": "tsx src/main.ts"
 	},
 	"keywords": [],
 	"author": "",

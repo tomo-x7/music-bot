@@ -1,21 +1,18 @@
 import {
 	AudioPlayerStatus,
-	AudioResource,
 	createAudioPlayer,
-	createAudioResource,
 	entersState,
 	getVoiceConnection,
 	joinVoiceChannel,
 	NoSubscriberBehavior,
-	PlayerSubscription,
-	VoiceConnectionStatus,
+	type PlayerSubscription,
 	type VoiceConnection,
+	VoiceConnectionStatus,
 } from "@discordjs/voice";
-import { ChatInputCommandInteraction, Client, ComponentType, VoiceConnectionStates } from "discord.js";
-import { config, neverAbort, sleep, waitReady } from "./util";
+import { type ChatInputCommandInteraction, Client } from "discord.js";
 import { genCommandEmitter } from "./commands";
-import { downloadYt } from "./yt";
 import { MusicQueue } from "./queue";
+import { config, neverAbort, sleep, waitReady } from "./util";
 
 const client = new Client({ intents: ["Guilds", "GuildVoiceStates"] });
 await client.login(config.TOKEN);
@@ -89,7 +86,20 @@ async function play() {
 				player.stop();
 			};
 			commandEmitter.on("skip", skipListener);
-			await notify("success", `再生開始: ${next.title}`);
+			const requester = await guild.members.fetch(next.requesterId);
+			await channel.send({
+				embeds: [
+					{
+						title: next.title,
+						url: next.url,
+						image: { url: next.thumbnail },
+						author: {
+							name: `requested by ${requester.displayName}`,
+							icon_url: requester.displayAvatarURL(),
+						},
+					},
+				],
+			});
 			await entersState(player, AudioPlayerStatus.Idle, neverAbort);
 			resource.clean();
 			commandEmitter.off("skip", skipListener);
@@ -115,13 +125,11 @@ commandEmitter.on("play", async (int, input) => {
 	const music = await queue.push(input.url, int.user.id);
 	await dPromise;
 	if (music == null) {
-		await Promise.all([
-			int.deleteReply(),
-			int.followUp({
-				embeds: [{ description: `対応していないサービスです: "${input.url}"` }],
-				flags: ["Ephemeral"],
-			}),
-		]);
+		await int.deleteReply();
+		await int.followUp({
+			embeds: [{ description: `対応していないサービスです: "${input.url}"` }],
+			flags: ["Ephemeral"],
+		});
 		return;
 	}
 	if (!isPlaying) play();
