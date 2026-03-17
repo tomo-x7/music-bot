@@ -6,7 +6,8 @@
 	"scripts": {
 		"check": "biome check --write",
 		"register": "tsx -e 'require(\"./src/commands\").register()'",
-		"start": "tsx src/main.ts"
+		"start": "tsx src/main.ts",
+		"build": "esbuild src/main.ts --bundle --packages=external --platform=node --format=esm --target=node24 --outfile=dist/index.js"
 	},
 	"keywords": [],
 	"author": "",
@@ -15,6 +16,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "2.2.3",
 		"@types/node": "^25.4.0",
+		"esbuild": "^0.27.4",
 		"tsx": "^4.21.0",
 		"typescript": "^5.9.3"
 	},
@@ -27,7 +29,8 @@
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
-			"@discordjs/opus"
+			"@discordjs/opus",
+			"esbuild"
 		]
 	},
 	"type": "module"
