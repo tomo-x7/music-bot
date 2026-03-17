@@ -140,6 +140,22 @@ commandEmitter.on("skip", async (int) => {
 	if (int.replied) return;
 	int.reply({ content: "スキップコマンドは再生中のみ使用可能", flags: ["Ephemeral"] });
 });
+commandEmitter.on("queue", async (int) => {
+	const items = queue.fronts(10);
+	if (items.length === 0) {
+		int.reply({ content: "キューは空です", flags: ["Ephemeral"] });
+		return;
+	}
+	int.reply({
+		embeds: [
+			{
+				title: "キュー",
+				description: items.map((item, i) => `**${i + 1}.** [${item.title}](${item.url})`).join("\n"),
+			},
+		],
+		flags: ["Ephemeral"],
+	});
+});
 
 process.on("SIGINT", async () => {
 	console.log("destroying");

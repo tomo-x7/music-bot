@@ -43,6 +43,10 @@ export class MusicQueue {
 		this.checkDownload();
 		return this.queue[0] ?? null;
 	}
+	public fronts(n: number) {
+		this.checkDownload();
+		return this.queue.slice(0, n);
+	}
 	public pop() {
 		this.checkDownload();
 		return this.queue.shift() ?? null;
@@ -72,12 +76,12 @@ export class MusicQueue {
 }
 
 const services = {
-	yt: ["youtube.com", "youtu.be"],
+	yt: ["www.youtube.com", "youtu.be", "music.youtube.com", "www.nicovideo.jp"],
 } as const;
 function urlParse(url: string): keyof typeof services | null {
 	const parsed = new URL(url);
 	for (const [key, hosts] of Object.entries(services)) {
-		if (hosts.some((h) => parsed.hostname.endsWith(h))) return key as keyof typeof services;
+		if (hosts.some((h) => parsed.hostname === h)) return key as keyof typeof services;
 	}
 	return null;
 }

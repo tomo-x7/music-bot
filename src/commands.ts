@@ -22,7 +22,9 @@ const commands = [
 		type: ApplicationCommandType.ChatInput,
 		description: "曲をスキップする",
 		options: [],
-	},
+	},{
+		name:"queue",type:ApplicationCommandType.ChatInput,description:"キューを表示する",options:[],
+	}
 ] as const satisfies Array<ApplicationCommandDataResolvable>;
 
 export async function register() {
