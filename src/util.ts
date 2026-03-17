@@ -48,7 +48,7 @@ export function raceTimer<T>(p: Promise<T>, timeout: number): Promise<T | null> 
 
 export const neverAbort = new AbortController().signal;
 
-await mkdir(join(import.meta.dirname, "../tmp"), { recursive: true });
+await mkdir(join(import.meta.dirname, "../log"), { recursive: true });
 const ffmpegLog = createWriteStream(join(import.meta.dirname, "../log/ffmpeg.log"), { flags: "a" });
 const trimFilter =
 	"silenceremove=start_periods=1:start_mode=all:start_threshold=-70dB:start_duration=0.2:start_silence=0.1:detection=peak,areverse,silenceremove=start_periods=1:start_mode=all:start_threshold=-70dB:start_duration=0.2:start_silence=0.2:detection=peak,areverse";

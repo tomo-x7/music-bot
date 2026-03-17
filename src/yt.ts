@@ -20,7 +20,7 @@ const retry = (n: number) => ["--retries", n.toString(), "--fragment-retries", n
 const UA = ["--user-agent", "Mozilla/5.0 (X11; Linux x86_64; rv:148.0) Gecko/20100101 Firefox/148.0"];
 const out = (id: string) => join(import.meta.dirname, "../tmp", `${id}.${EXT}`);
 
-await mkdir(join(import.meta.dirname, "../tmp"), { recursive: true });
+await mkdir(join(import.meta.dirname, "../log"), { recursive: true });
 const ytDlLog = createWriteStream(join(import.meta.dirname, "../log/yt-dlp-dl.log"), { flags: "a" });
 const ytMetaLog = createWriteStream(join(import.meta.dirname, "../log/yt-dlp-meta.log"), { flags: "a" });
 
