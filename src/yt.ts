@@ -1,4 +1,6 @@
 import { execSync, spawn } from "node:child_process";
+import { createWriteStream } from "node:fs";
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { APIEmbed, GuildMember } from "discord.js";
 import { mustBeNumber, mustBeString } from "./util";
@@ -16,23 +18,31 @@ try {
 const EXT = "opus";
 const retry = (n: number) => ["--retries", n.toString(), "--fragment-retries", n.toString()];
 const UA = ["--user-agent", "Mozilla/5.0 (X11; Linux x86_64; rv:148.0) Gecko/20100101 Firefox/148.0"];
-const out = (id: number) => join(import.meta.dirname, "../tmp", `${id}.${EXT}`);
+const out = (id: string) => join(import.meta.dirname, "../tmp", `${id}.${EXT}`);
 
-export function downloadYt(url: string, id: number, timeout?: number) {
+await mkdir(join(import.meta.dirname, "../tmp"), { recursive: true });
+const ytDlLog = createWriteStream(join(import.meta.dirname, "../log/yt-dlp-dl.log"), { flags: "a" });
+const ytMetaLog = createWriteStream(join(import.meta.dirname, "../log/yt-dlp-meta.log"), { flags: "a" });
+
+export function downloadYt(url: string, id: string) {
 	return new Promise<string>((resolve, reject) => {
-		const child = spawn("yt-dlp", [
-			"-x",
-			"--audio-format",
-			EXT,
-			"--limit-rate",
-			"1M",
-			"--no-playlist",
-			...retry(5),
-			...UA,
-			"--output",
-			out(id),
-			url,
-		]);
+		const child = spawn(
+			"yt-dlp",
+			[
+				"-x",
+				"--audio-format",
+				EXT,
+				"--limit-rate",
+				"1M",
+				"--no-playlist",
+				...retry(5),
+				...UA,
+				"--output",
+				out(id),
+				url,
+			],
+			{ stdio: ["ignore", "ignore", ytDlLog] },
+		);
 		child.on("error", (err) => reject(err));
 		child.on("exit", (code) => {
 			if (code === 0) resolve(out(id));
@@ -52,16 +62,20 @@ export type YtMeta = {
 export function getMetaYt(url: string) {
 	return new Promise<YtMeta>((resolve, reject) => {
 		let str = "";
-		const child = spawn("yt-dlp", [
-			...print("title"),
-			...print("duration"),
-			...print("thumbnail"),
-			...print("channel"),
-			...print("channel_url"),
-			"--no-download",
-			"--no-playlist",
-			url,
-		]);
+		const child = spawn(
+			"yt-dlp",
+			[
+				...print("title"),
+				...print("duration"),
+				...print("thumbnail"),
+				...print("channel"),
+				...print("channel_url"),
+				"--no-download",
+				"--no-playlist",
+				url,
+			],
+			{ stdio: ["ignore", "pipe", ytMetaLog] },
+		);
 		child.stdout.on("data", (data) => {
 			str += data.toString();
 		});

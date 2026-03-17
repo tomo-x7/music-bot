@@ -1,12 +1,13 @@
 import { rm } from "node:fs/promises";
 import { type AudioResource, createAudioResource } from "@discordjs/voice";
 import type { GuildMember } from "discord.js";
+import { v7 } from "uuid";
 import { assertNever, trimMusic } from "./util";
 import { downloadYt, genEmbedYt, getMetaYt, type YtMeta } from "./yt";
 
 export type MusicQueueItem = MusicQueueItemBase & Meta;
 interface MusicQueueItemBase {
-	id: number;
+	id: string;
 	promise: Promise<Resource | null> | null;
 	requester: GuildMember;
 	url: string;
@@ -21,10 +22,8 @@ type Resource = {
 
 export class MusicQueue {
 	private queue: Array<MusicQueueItem> = [];
-	private lastId = 0;
 	public async push(url: string, requester: GuildMember) {
-		const id = Date.now() === this.lastId ? this.lastId + 1 : Date.now();
-		this.lastId = id;
+		const id = v7();
 		const type = urlParse(url);
 		if (type == null) throw new Error(`Unsupported URL: ${url}`);
 		const meta = await getMeta(type, url);
@@ -50,9 +49,14 @@ export class MusicQueue {
 	}
 	public pop() {
 		this.checkDownload();
-		return this.queue.shift() ?? null;
+		const item = this.queue.shift() ?? null;
+		item?.promise?.then((res) => res?.clean());
+		return item;
 	}
 	public clear() {
+		for (const item of this.queue) {
+			item.promise?.then((res) => res?.clean());
+		}
 		this.queue.length = 0;
 	}
 	public empty() {
@@ -84,14 +88,10 @@ const services = {
 } as const;
 function urlParse(url: string): keyof typeof services | null {
 	const parsed = new URL(url);
-	let key: keyof typeof services | null = null;
 	for (const [k, hosts] of Object.entries(services)) {
-		if (hosts.some((h) => parsed.hostname === h)) key = k as keyof typeof services;
+		if (hosts.some((h) => parsed.hostname === h)) return k as keyof typeof services;
 	}
-	if (parsed.hostname === "www.youtube.com") {
-		parsed.search = `?v=${parsed.searchParams.get("v")}`; // playlistを消す
-	}
-	return key;
+	return null;
 }
 
 async function getMeta(type: keyof typeof services, url: string): Promise<Meta | null> {
@@ -102,7 +102,7 @@ async function getMeta(type: keyof typeof services, url: string): Promise<Meta |
 			assertNever(type);
 	}
 }
-async function download(type: keyof typeof services, url: string, id: number): Promise<Resource | null> {
+async function download(type: keyof typeof services, url: string, id: string): Promise<Resource | null> {
 	let path: string;
 	switch (type) {
 		case "yt": {

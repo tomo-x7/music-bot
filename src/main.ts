@@ -1,3 +1,6 @@
+import { EventEmitter } from "node:events";
+import { rm } from "node:fs/promises";
+import { join } from "node:path";
 import {
 	AudioPlayerStatus,
 	createAudioPlayer,
@@ -5,16 +8,15 @@ import {
 	getVoiceConnection,
 	joinVoiceChannel,
 	NoSubscriberBehavior,
-	type PlayerSubscription,
-	type VoiceConnection,
 	VoiceConnectionStatus,
 } from "@discordjs/voice";
-import { ActivityType, type ChatInputCommandInteraction, Client } from "discord.js";
+import { ActivityType, Client } from "discord.js";
 import { genCommandEmitter } from "./commands";
 import { genEmbed, MusicQueue } from "./queue";
-import { config, neverAbort, sleep, waitReady } from "./util";
+import { config, neverAbort, waitReady } from "./util";
 
 const client = new Client({ intents: ["Guilds", "GuildVoiceStates"] });
+await rm(join(import.meta.dirname, "../tmp"), { recursive: true, force: true });
 await client.login(config.TOKEN);
 await waitReady(client);
 
@@ -32,21 +34,14 @@ async function notify(status: "success" | "error", text: string) {
 }
 
 const queue = new MusicQueue();
-
-let connection: VoiceConnection | null = null;
-let sub: PlayerSubscription | null = null;
-const player = createAudioPlayer();
 const commandEmitter = genCommandEmitter(client);
+const skipEmitter = new EventEmitter<{ skip: [string, (ok: boolean) => void] }>();
 
 client.on("voiceStateUpdate", (oldState, newState) => {
 	const me = client.user?.id;
 	if (me == null) return;
 	if (oldState.member?.id === me && newState.channelId == null) {
-		sub?.unsubscribe();
-		connection?.destroy();
-		connection = null;
-		sub = null;
-		queue.clear();
+		getVoiceConnection(config.SERVERID)?.destroy();
 	}
 });
 
@@ -65,35 +60,35 @@ async function play() {
 		connection.subscribe(player);
 
 		while (!queue.empty()) {
-			await entersState(player, AudioPlayerStatus.Idle, neverAbort);
-			const next = queue.front();
-			if (next == null) break;
-			const resource = await next.promise;
-			if (resource == null) {
-				await notify("error", `Failed to download ${next.url}`);
-				queue.pop();
-				continue;
-			}
-			player.play(resource.data);
-			await entersState(player, AudioPlayerStatus.Playing, neverAbort);
-			const skipListener = (int: ChatInputCommandInteraction) => {
-				if (int.user.id !== next.requester.id)
-					return void int.reply({
-						content: "リクエスト者のみスキップ可能",
-						flags: ["Ephemeral"],
-					});
-				int.reply("スキップします");
+			try {
+				await entersState(player, AudioPlayerStatus.Idle, neverAbort);
+				const next = queue.front();
+				if (next == null) break;
+				const resource = await next.promise;
+				if (resource == null) {
+					await notify("error", `Failed to download ${next.meta.title}`);
+					continue;
+				}
+				player.play(resource.data);
+				await entersState(player, AudioPlayerStatus.Playing, neverAbort);
+				skipEmitter.once("skip", (id, cb) => {
+					if (id !== next.requester.id) return void cb(false);
+					player.stop();
+					cb(true);
+				});
+				await channel.send({
+					embeds: [genEmbed(next)],
+				});
+				client.user?.setPresence({ activities: [{ name: next.meta.title, type: ActivityType.Listening }] });
+				await entersState(player, AudioPlayerStatus.Idle, neverAbort);
+			} catch (e) {
+				console.error("play error:", e);
+				await notify("error", `再生中にエラーが発生しました: ${e instanceof Error ? e.message : String(e)}`);
 				player.stop();
-			};
-			commandEmitter.on("skip", skipListener);
-			await channel.send({
-				embeds: [genEmbed(next)],
-			});
-			client.user?.setPresence({ activities: [{ name: next.meta.title, type: ActivityType.Listening }] });
-			await entersState(player, AudioPlayerStatus.Idle, neverAbort);
-			resource.clean();
-			commandEmitter.off("skip", skipListener);
-			queue.pop();
+			} finally {
+				skipEmitter.removeAllListeners("skip");
+				queue.pop();
+			}
 		}
 		await notify("success", "再生が終了しました");
 		client.user?.setPresence({ activities: [] });
@@ -110,7 +105,7 @@ async function play() {
 commandEmitter.on("play", async (int, input) => {
 	try {
 		if (!URL.canParse(input.url)) {
-			int.reply({ content: "URLが無効です", flags: ["Ephemeral"] });
+			await int.reply({ content: "URLが無効です", flags: ["Ephemeral"] });
 			return;
 		}
 		const dPromise = int.deferReply();
@@ -135,16 +130,24 @@ commandEmitter.on("play", async (int, input) => {
 		});
 	} catch (e) {
 		console.error("play command error:", e);
-		int.reply({
+		await int.followUp({
 			content: `エラーが発生しました: ${e instanceof Error ? e.message : String(e)}`,
 			flags: ["Ephemeral"],
 		});
 	}
 });
 commandEmitter.on("skip", async (int) => {
-	await sleep(2000);
-	if (int.replied) return;
-	int.reply({ content: "スキップコマンドは再生中のみ使用可能", flags: ["Ephemeral"] });
+	const handled = skipEmitter.emit("skip", int.user.id, (ok) => {
+		if (ok) {
+			int.reply({ content: "スキップしました" });
+		} else {
+			int.reply({
+				content: "リクエスト者のみスキップ可能",
+				flags: ["Ephemeral"],
+			});
+		}
+	});
+	if (!handled) int.reply({ content: "スキップコマンドは再生中のみ使用可能", flags: ["Ephemeral"] });
 });
 commandEmitter.on("queue", async (int) => {
 	const items = queue.fronts(10);

@@ -7,10 +7,11 @@ const SERVERID = mustBeString(process.env.SERVER, "env.SERVER");
 
 export const config = { TOKEN, SERVERID, VCID } as const;
 
-import { spawn } from "node:child_process";
-import { rm } from "node:fs/promises";
-import { basename } from "node:path";
 // utils
+import { spawn } from "node:child_process";
+import { createWriteStream } from "node:fs";
+import { mkdir, rm } from "node:fs/promises";
+import { basename, join } from "node:path";
 import type { Client } from "discord.js";
 
 export function waitReady(client: Client) {
@@ -47,6 +48,8 @@ export function raceTimer<T>(p: Promise<T>, timeout: number): Promise<T | null> 
 
 export const neverAbort = new AbortController().signal;
 
+await mkdir(join(import.meta.dirname, "../tmp"), { recursive: true });
+const ffmpegLog = createWriteStream(join(import.meta.dirname, "../log/ffmpeg.log"), { flags: "a" });
 const trimFilter =
 	"silenceremove=start_periods=1:start_mode=all:start_threshold=-70dB:start_duration=0.2:start_silence=0.1:detection=peak,areverse,silenceremove=start_periods=1:start_mode=all:start_threshold=-70dB:start_duration=0.2:start_silence=0.2:detection=peak,areverse";
 export async function trimMusic(path: string) {
@@ -55,7 +58,9 @@ export async function trimMusic(path: string) {
 	const newPath = path.replace(file, newFile);
 
 	await new Promise<void>((resolve, reject) => {
-		const child = spawn("ffmpeg", ["-i", path, "-af", trimFilter, newPath]);
+		const child = spawn("ffmpeg", ["-i", path, "-af", trimFilter, newPath], {
+			stdio: ["ignore", "ignore", ffmpegLog],
+		});
 		child.on("error", (err) => reject(err));
 		child.on("exit", (code) => {
 			if (code === 0) resolve();
