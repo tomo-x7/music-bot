@@ -108,10 +108,9 @@ commandEmitter.on("play", async (int, input) => {
 			await int.reply({ content: "URLが無効です", flags: ["Ephemeral"] });
 			return;
 		}
-		const dPromise = int.deferReply();
+		await int.deferReply();
 		const member = await guild.members.fetch(int.user.id);
 		const musicItem = await queue.push(input.url, member);
-		await dPromise;
 		if (musicItem == null) {
 			await int.deleteReply();
 			await int.followUp({
