@@ -9,7 +9,7 @@ import {
 	type VoiceConnection,
 	VoiceConnectionStatus,
 } from "@discordjs/voice";
-import { type ChatInputCommandInteraction, Client } from "discord.js";
+import { ActivityType, type ChatInputCommandInteraction, Client } from "discord.js";
 import { genCommandEmitter } from "./commands";
 import { MusicQueue } from "./queue";
 import { config, neverAbort, sleep, waitReady } from "./util";
@@ -100,12 +100,14 @@ async function play() {
 					},
 				],
 			});
+			client.user?.setPresence({ activities: [{ name: next.title, type: ActivityType.Listening }] });
 			await entersState(player, AudioPlayerStatus.Idle, neverAbort);
 			resource.clean();
 			commandEmitter.off("skip", skipListener);
 			queue.pop();
 		}
 		await notify("success", "再生が終了しました");
+		client.user?.setPresence({ activities: [] });
 	} catch (e) {
 		console.error("unknown error:", e);
 		await notify("error", `fatal: ${e instanceof Error ? e.message : String(e)}`);
