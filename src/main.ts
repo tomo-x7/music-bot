@@ -11,7 +11,7 @@ import {
 } from "@discordjs/voice";
 import { ActivityType, type ChatInputCommandInteraction, Client } from "discord.js";
 import { genCommandEmitter } from "./commands";
-import { MusicQueue } from "./queue";
+import { genEmbed, MusicQueue } from "./queue";
 import { config, neverAbort, sleep, waitReady } from "./util";
 
 const client = new Client({ intents: ["Guilds", "GuildVoiceStates"] });
@@ -77,7 +77,7 @@ async function play() {
 			player.play(resource.data);
 			await entersState(player, AudioPlayerStatus.Playing, neverAbort);
 			const skipListener = (int: ChatInputCommandInteraction) => {
-				if (int.user.id !== next.requesterId)
+				if (int.user.id !== next.requester.id)
 					return void int.reply({
 						content: "リクエスト者のみスキップ可能",
 						flags: ["Ephemeral"],
@@ -86,21 +86,10 @@ async function play() {
 				player.stop();
 			};
 			commandEmitter.on("skip", skipListener);
-			const requester = await guild.members.fetch(next.requesterId);
 			await channel.send({
-				embeds: [
-					{
-						title: next.title,
-						url: next.url,
-						image: { url: next.thumbnail },
-						author: {
-							name: `requested by ${requester.displayName}`,
-							icon_url: requester.displayAvatarURL(),
-						},
-					},
-				],
+				embeds: [genEmbed(next)],
 			});
-			client.user?.setPresence({ activities: [{ name: next.title, type: ActivityType.Listening }] });
+			client.user?.setPresence({ activities: [{ name: next.meta.title, type: ActivityType.Listening }] });
 			await entersState(player, AudioPlayerStatus.Idle, neverAbort);
 			resource.clean();
 			commandEmitter.off("skip", skipListener);
@@ -119,23 +108,38 @@ async function play() {
 }
 
 commandEmitter.on("play", async (int, input) => {
-	if (!URL.canParse(input.url)) {
-		int.reply({ content: "URLが無効です", flags: ["Ephemeral"] });
-		return;
-	}
-	const dPromise = int.deferReply();
-	const music = await queue.push(input.url, int.user.id);
-	await dPromise;
-	if (music == null) {
-		await int.deleteReply();
-		await int.followUp({
-			embeds: [{ description: `対応していないサービスです: "${input.url}"` }],
+	try {
+		if (!URL.canParse(input.url)) {
+			int.reply({ content: "URLが無効です", flags: ["Ephemeral"] });
+			return;
+		}
+		const dPromise = int.deferReply();
+		const member = await guild.members.fetch(int.user.id);
+		const musicItem = await queue.push(input.url, member);
+		await dPromise;
+		if (musicItem == null) {
+			await int.deleteReply();
+			await int.followUp({
+				embeds: [{ description: `対応していないサービスです: "${input.url}"` }],
+				flags: ["Ephemeral"],
+			});
+			return;
+		}
+		if (!isPlaying) play();
+		await int.editReply({
+			embeds: [
+				{
+					description: `"${musicItem.item.meta.title}"をキューに追加しました: ${musicItem.position}曲後に再生`,
+				},
+			],
+		});
+	} catch (e) {
+		console.error("play command error:", e);
+		int.reply({
+			content: `エラーが発生しました: ${e instanceof Error ? e.message : String(e)}`,
 			flags: ["Ephemeral"],
 		});
-		return;
 	}
-	if (!isPlaying) play();
-	await int.editReply({ embeds: [{ description: `"${music.title}"をキューに追加しました` }] });
 });
 commandEmitter.on("skip", async (int) => {
 	await sleep(2000);
@@ -152,7 +156,9 @@ commandEmitter.on("queue", async (int) => {
 		embeds: [
 			{
 				title: "キュー",
-				description: items.map((item, i) => `**${i + 1}.** [${item.title}](${item.url})`).join("\n"),
+				description: items
+					.map((item, i) => `**${i === 0 ? "今" : i}.** [${item.meta.title}](${item.url})`)
+					.join("\n"),
 			},
 		],
 		flags: ["Ephemeral"],

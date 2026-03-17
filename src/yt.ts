@@ -1,5 +1,6 @@
 import { execSync, spawn } from "node:child_process";
 import { join } from "node:path";
+import type { APIEmbed, GuildMember } from "discord.js";
 import { mustBeNumber, mustBeString } from "./util";
 
 try {
@@ -40,13 +41,23 @@ export function downloadYt(url: string, id: number, timeout?: number) {
 	});
 }
 const print = (key: string) => ["--print", `%(${key})s`];
+export type YtMeta = {
+	title: string;
+	duration: number;
+	thumbnail: string;
+	url: string;
+	channel: string;
+	channel_url: string;
+};
 export function getMetaYt(url: string) {
-	return new Promise<{ title: string; duration: number; thumbnail: string }>((resolve, reject) => {
+	return new Promise<YtMeta>((resolve, reject) => {
 		let str = "";
 		const child = spawn("yt-dlp", [
 			...print("title"),
 			...print("duration"),
 			...print("thumbnail"),
+			...print("channel"),
+			...print("channel_url"),
 			"--no-download",
 			"--no-playlist",
 			url,
@@ -65,10 +76,26 @@ export function getMetaYt(url: string) {
 					title: mustBeString(results[0], "yt-dlp title"),
 					duration: mustBeNumber(results[1], "yt-dlp duration"),
 					thumbnail: mustBeString(results[2], "yt-dlp thumbnail"),
+					channel: mustBeString(results[3], "yt-dlp channel"),
+					channel_url: mustBeString(results[4], "yt-dlp channel_url"),
+					url,
 				});
 			} else {
 				reject(new Error(`yt-dlp exited with code ${code}`));
 			}
 		});
 	});
+}
+
+export function genEmbedYt(meta: YtMeta, requester: GuildMember): APIEmbed {
+	return {
+		title: meta.title,
+		url: meta.url,
+		description: `requested by ${requester}`,
+		author: {
+			name: meta.channel,
+			url: meta.channel_url,
+		},
+		image: { url: meta.thumbnail },
+	};
 }

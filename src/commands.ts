@@ -86,6 +86,10 @@ export function genCommandEmitter(client: Client) {
 		}
 		const command = commands.find((c) => c.name === interaction.commandName);
 		if (command == null) return;
+		if (interaction.member == null) {
+			interaction.reply({ content: "使用不可", flags: ["Ephemeral"] });
+			return;
+		}
 		const input = Object.fromEntries(
 			command.options.map((option) => {
 				const value = interaction.options[getMethod[option.type]](option.name);

@@ -1,17 +1,18 @@
 import { rm } from "node:fs/promises";
 import { type AudioResource, createAudioResource } from "@discordjs/voice";
+import type { GuildMember } from "discord.js";
 import { assertNever, trimMusic } from "./util";
-import { downloadYt, getMetaYt } from "./yt";
+import { downloadYt, genEmbedYt, getMetaYt, type YtMeta } from "./yt";
 
-export type MusicQueueItem = {
+export type MusicQueueItem = MusicQueueItemBase & Meta;
+interface MusicQueueItemBase {
 	id: number;
-	title: string;
-	url: string;
-	duration: number;
-	thumbnail: string;
-	requesterId: string;
 	promise: Promise<Resource | null> | null;
-};
+	requester: GuildMember;
+	url: string;
+}
+type Meta = { type: "yt"; meta: YtMeta };
+
 type Resource = {
 	data: AudioResource;
 	clean: () => Promise<void>;
@@ -21,23 +22,23 @@ type Resource = {
 export class MusicQueue {
 	private queue: Array<MusicQueueItem> = [];
 	private lastId = 0;
-	public async push(url: string, requesterId: string) {
+	public async push(url: string, requester: GuildMember) {
 		const id = Date.now() === this.lastId ? this.lastId + 1 : Date.now();
 		this.lastId = id;
-		const { title, duration, thumbnail } = (await getMeta(url)) ?? {};
-		if (title == null || duration == null || thumbnail == null) return null;
+		const type = urlParse(url);
+		if (type == null) throw new Error(`Unsupported URL: ${url}`);
+		const meta = await getMeta(type, url);
+		if (meta == null) return null;
 		const item: MusicQueueItem = {
 			id,
-			title,
 			url,
-			duration,
-			thumbnail,
-			requesterId,
+			requester,
 			promise: null,
+			...meta,
 		};
 		this.queue.push(item);
 		this.checkDownload();
-		return item;
+		return { item, position: this.queue.length - 1 };
 	}
 	public front() {
 		this.checkDownload();
@@ -62,7 +63,7 @@ export class MusicQueue {
 			const item = this.queue[i];
 			if (item == null) break;
 			if (item.promise == null) {
-				item.promise = download(item.url, item.id).catch((e) => {
+				item.promise = download(item.type, item.url, item.id).catch((e) => {
 					console.error(`Failed to download ${item.url}:`, e);
 					item.promise = null;
 					return null;
@@ -72,6 +73,9 @@ export class MusicQueue {
 	}
 	public [Symbol.toString()]() {
 		return `MusicQueue[${this.queue.join(", ")}]`;
+	}
+	public size() {
+		return this.queue.length;
 	}
 }
 
@@ -90,27 +94,23 @@ function urlParse(url: string): keyof typeof services | null {
 	return key;
 }
 
-function getMeta(url: string) {
-	const parsed = urlParse(url);
-	if (parsed == null) return null;
-	switch (parsed) {
+async function getMeta(type: keyof typeof services, url: string): Promise<Meta | null> {
+	switch (type) {
 		case "yt":
-			return getMetaYt(url);
+			return { type: "yt", meta: await getMetaYt(url) };
 		default:
-			assertNever(parsed);
+			assertNever(type);
 	}
 }
-async function download(url: string, id: number): Promise<Resource | null> {
-	const parsed = urlParse(url);
-	if (parsed == null) return null;
+async function download(type: keyof typeof services, url: string, id: number): Promise<Resource | null> {
 	let path: string;
-	switch (parsed) {
+	switch (type) {
 		case "yt": {
 			path = await downloadYt(url, id);
 			break;
 		}
 		default:
-			assertNever(parsed);
+			assertNever(type);
 	}
 	path = await trimMusic(path);
 	const data = createAudioResource(path);
@@ -118,4 +118,13 @@ async function download(url: string, id: number): Promise<Resource | null> {
 		await rm(path).catch(() => {});
 	};
 	return { data, clean, path };
+}
+
+export function genEmbed(item: MusicQueueItem) {
+	switch (item.type) {
+		case "yt":
+			return genEmbedYt(item.meta, item.requester);
+		default:
+			assertNever(item.type);
+	}
 }
