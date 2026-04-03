@@ -13,12 +13,19 @@ import {
 import { ActivityType, Client } from "discord.js";
 import { genCommandEmitter } from "./commands";
 import { genEmbed, MusicQueue } from "./queue";
+import { uo } from "./uo";
 import { config, neverAbort, waitReady } from "./util";
 
-const client = new Client({ intents: ["Guilds", "GuildVoiceStates"] });
+const client = new Client({ intents: ["Guilds", "GuildVoiceStates", "MessageContent", "GuildMessages"] });
+client.on("error", (e) => {
+	console.error("client error:", e);
+});
+
 await rm(join(import.meta.dirname, "../tmp"), { recursive: true, force: true });
 await client.login(config.TOKEN);
 await waitReady(client);
+
+uo(client);
 
 const guild = await client.guilds.fetch(config.SERVERID);
 const channel = await (async () => {
