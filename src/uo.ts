@@ -13,6 +13,10 @@ const EXCLUDE_CHANNELS = [
 	"1479813518483001435", //有益2
 	"1479813948311212325", //有益3
 ];
+enum TYPE {
+	UO,
+	NASU,
+}
 
 export function uo(client: Client) {
 	client.on("messageCreate", async (message) => {
@@ -23,9 +27,15 @@ export function uo(client: Client) {
 			if (ch.isDMBased()) return;
 			if (ch.parentId != null && EXCLUDE_CATEGORIES.includes(ch.parentId)) return;
 			if (EXCLUDE_CHANNELS.includes(ch.id)) return;
-
-			if (match(message.content)) {
-				await message.reply({ content: "うおｗ", allowedMentions: { repliedUser: false } });
+			switch (match(message.content)) {
+				case TYPE.UO:
+					await message.reply({ content: "うおｗ", allowedMentions: { repliedUser: false } });
+					break;
+				case TYPE.NASU:
+					await message.reply({ content: "🍆", allowedMentions: { repliedUser: false } });
+					break;
+				default:
+					return;
 			}
 		} catch (e) {
 			console.error(e);
@@ -33,6 +43,8 @@ export function uo(client: Client) {
 	});
 }
 
-function match(str: string) {
-	if (str.includes("おお")) return true;
+function match(str: string): TYPE | null {
+	if (str.includes("おお")) return TYPE.UO;
+	if (str.includes("なす")) return TYPE.NASU;
+	return null;
 }
