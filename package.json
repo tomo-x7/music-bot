@@ -5,7 +5,7 @@
 	"main": "index.js",
 	"scripts": {
 		"check": "biome check --write",
-		"register": "tsx -e 'require(\"./src/commands\").register()'",
+		"register": "tsx -e 'import(\"./src/commands\").then(({ register }) => register())'",
 		"start": "tsx src/main.ts",
 		"build": "esbuild src/main.ts --bundle --packages=external --platform=node --format=esm --target=node24 --outfile=dist/index.js"
 	},
