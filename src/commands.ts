@@ -8,7 +8,8 @@ import {
 	Client,
 	type CommandInteractionOptionResolver,
 } from "discord.js";
-import { config, waitReady } from "./util";
+import { env } from "./env";
+import { waitReady } from "./util";
 
 const commands = [
 	{
@@ -33,10 +34,10 @@ const commands = [
 
 export async function register() {
 	const client = new Client({ intents: ["Guilds"] });
-	await client.login(config.TOKEN);
+	await client.login(env.TOKEN);
 	await waitReady(client);
 	if (client.application == null) throw new Error("Application is not ready");
-	await client.application?.commands.set(commands, config.SERVERID);
+	await client.application?.commands.set(commands, env.SERVER);
 
 	await client.destroy();
 }
@@ -80,7 +81,7 @@ export function genCommandEmitter(client: Client) {
 	const emitter = new EventEmitter<Events>();
 	client.on("interactionCreate", (interaction) => {
 		if (!interaction.isChatInputCommand()) return;
-		if (interaction.channelId !== config.VCID) {
+		if (interaction.channelId !== env.VC) {
 			interaction.reply({ content: "使用不可", flags: ["Ephemeral"] });
 			return;
 		}

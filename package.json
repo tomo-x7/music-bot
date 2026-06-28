@@ -7,7 +7,7 @@
 		"check": "biome check --write",
 		"register": "tsx -e 'import(\"./src/commands\").then(({ register }) => register())'",
 		"start": "tsx src/main.ts",
-		"build": "esbuild src/main.ts --bundle --packages=external --platform=node --format=esm --target=node24 --outfile=dist/index.js"
+		"build": "node src/env.ts && esbuild src/main.ts --bundle --packages=external --platform=node --format=esm --target=node24 --outfile=dist/index.js"
 	},
 	"keywords": [],
 	"author": "",
@@ -25,6 +25,7 @@
 		"@discordjs/voice": "^0.19.1",
 		"discord.js": "^14.25.1",
 		"dotenv": "^17.3.1",
+		"envalid": "^8.2.0",
 		"uuid": "^13.0.0"
 	},
 	"pnpm": {

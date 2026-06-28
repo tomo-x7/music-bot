@@ -12,9 +12,10 @@ import {
 } from "@discordjs/voice";
 import { ActivityType, Client } from "discord.js";
 import { genCommandEmitter } from "./commands";
+import { env } from "./env";
 import { genEmbed, MusicQueue } from "./queue";
 import { uo } from "./uo";
-import { config, neverAbort, waitReady } from "./util";
+import { neverAbort, waitReady } from "./util";
 
 const client = new Client({ intents: ["Guilds", "GuildVoiceStates", "MessageContent", "GuildMessages"] });
 client.on("error", (e) => {
@@ -22,14 +23,14 @@ client.on("error", (e) => {
 });
 
 await rm(join(import.meta.dirname, "../tmp"), { recursive: true, force: true });
-await client.login(config.TOKEN);
+await client.login(env.TOKEN);
 await waitReady(client);
 
 uo(client);
 
-const guild = await client.guilds.fetch(config.SERVERID);
+const guild = await client.guilds.fetch(env.SERVER);
 const channel = await (async () => {
-	const c = await client.channels.fetch(config.VCID);
+	const c = await client.channels.fetch(env.VC);
 	if (!(c?.isVoiceBased() && c?.isSendable())) {
 		throw new Error("Invalid voice channel");
 	}
@@ -48,7 +49,7 @@ client.on("voiceStateUpdate", (oldState, newState) => {
 	const me = client.user?.id;
 	if (me == null) return;
 	if (oldState.member?.id === me && newState.channelId == null) {
-		getVoiceConnection(config.SERVERID)?.destroy();
+		getVoiceConnection(env.SERVER)?.destroy();
 	}
 });
 
@@ -58,8 +59,8 @@ async function play() {
 	isPlaying = true;
 	const player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Stop } });
 	const connection = joinVoiceChannel({
-		guildId: config.SERVERID,
-		channelId: config.VCID,
+		guildId: env.SERVER,
+		channelId: env.VC,
 		adapterCreator: guild.voiceAdapterCreator,
 	});
 	try {
@@ -176,7 +177,7 @@ commandEmitter.on("queue", async (int) => {
 
 process.on("SIGINT", async () => {
 	console.log("destroying");
-	getVoiceConnection(config.SERVERID)?.destroy();
+	getVoiceConnection(env.SERVER)?.destroy();
 	await client.destroy();
 	process.exit(0);
 });
