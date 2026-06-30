@@ -150,7 +150,7 @@ export async function reminder(client: Client, commandEmitter: CommandEmitter) {
 			});
 		};
 
-		commandEmitter.on("setSuen", async (interaction, { active }) => {
+		commandEmitter.on("setsuen", async (interaction, { active }) => {
 			try {
 				if (active) {
 					await interaction.deferReply();
@@ -165,7 +165,7 @@ export async function reminder(client: Client, commandEmitter: CommandEmitter) {
 					await interaction.editReply({ content: "数演リマインダーを無効にしました" });
 				}
 			} catch (e) {
-				console.error("error occurred in setSuen command:", e);
+				console.error("error occurred in setsuen command:", e);
 			}
 		});
 		if (getSettings("activeSuen")) {

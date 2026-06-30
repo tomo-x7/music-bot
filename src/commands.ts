@@ -31,7 +31,7 @@ const commands = [
 		options: [],
 	},
 	{
-		name: "setSuen",
+		name: "setsuen",
 		type: ApplicationCommandType.ChatInput,
 		description: "数演のリマインダーの設定",
 		options: [
