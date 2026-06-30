@@ -3,3 +3,5 @@ node_modules
 tmp
 dist
 log
+settings.json
+.pnpm-store
