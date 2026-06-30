@@ -100,7 +100,7 @@ export async function reminder(client: Client, commandEmitter: CommandEmitter) {
 			const reminders = [
 				schedule("0 18-20 * * 3", remind, GlobalScheduleOption),
 				schedule("0 18-23 * * 4", remind, GlobalScheduleOption),
-				schedule("0-55/5 23 * * 4", remind, GlobalScheduleOption),
+				schedule("10-50/10 23 * * 4", remind, GlobalScheduleOption),
 			];
 			curcleans.push(() => Promise.all(reminders.map((task) => task.destroy())).then(() => void 0));
 			const suenButtonHandler = async (interaction: ButtonInteraction) => {
