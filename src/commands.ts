@@ -94,10 +94,6 @@ export function genCommandEmitter(client: Client) {
 	const emitter = new EventEmitter<Events>();
 	client.on("interactionCreate", (interaction) => {
 		if (!interaction.isChatInputCommand()) return;
-		if (interaction.channelId !== env.VC) {
-			interaction.reply({ content: "使用不可", flags: ["Ephemeral"] });
-			return;
-		}
 		const command = commands.find((c) => c.name === interaction.commandName);
 		if (command == null) return;
 		if (interaction.member == null) {

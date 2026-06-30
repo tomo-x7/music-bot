@@ -114,6 +114,10 @@ async function play() {
 
 commandEmitter.on("play", async (int, input) => {
 	try {
+		if (int.channelId !== env.VC) {
+			int.reply({ content: "使用不可", flags: ["Ephemeral"] });
+			return;
+		}
 		if (!URL.canParse(input.url)) {
 			await int.reply({ content: "URLが無効です", flags: ["Ephemeral"] });
 			return;
@@ -146,6 +150,10 @@ commandEmitter.on("play", async (int, input) => {
 	}
 });
 commandEmitter.on("skip", async (int) => {
+	if (int.channelId !== env.VC) {
+		int.reply({ content: "使用不可", flags: ["Ephemeral"] });
+		return;
+	}
 	const handled = skipEmitter.emit("skip", int.user.id, (ok) => {
 		if (ok) {
 			int.reply({ content: "スキップしました" });
@@ -159,6 +167,10 @@ commandEmitter.on("skip", async (int) => {
 	if (!handled) int.reply({ content: "スキップコマンドは再生中のみ使用可能", flags: ["Ephemeral"] });
 });
 commandEmitter.on("queue", async (int) => {
+	if (int.channelId !== env.VC) {
+		int.reply({ content: "使用不可", flags: ["Ephemeral"] });
+		return;
+	}
 	const items = queue.fronts(10);
 	if (items.length === 0) {
 		int.reply({ content: "キューは空です", flags: ["Ephemeral"] });
