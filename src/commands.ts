@@ -30,6 +30,19 @@ const commands = [
 		description: "キューを表示する",
 		options: [],
 	},
+	{
+		name: "setSuen",
+		type: ApplicationCommandType.ChatInput,
+		description: "数演のリマインダーの設定",
+		options: [
+			{
+				name: "active",
+				description: "リマインダーを有効にするか",
+				type: ApplicationCommandOptionType.Boolean,
+				required: true,
+			},
+		],
+	},
 ] as const satisfies Array<ApplicationCommandDataResolvable>;
 
 export async function register() {
@@ -102,3 +115,5 @@ export function genCommandEmitter(client: Client) {
 	});
 	return emitter;
 }
+
+export type CommandEmitter = ReturnType<typeof genCommandEmitter>;

@@ -22,4 +22,7 @@ export const env = cleanEnv(process.env, {
 	SERVER: numStr(),
 	UO_IGNORE_CATEGORIES: numStrArray(),
 	UO_IGNORE_CHANNELS: numStrArray(),
+	REMINDER_CHANNEL: numStr(),
+	SUEN_ROLE: numStr(),
+	SUEN_TEMP_ROLE: numStr(),
 });

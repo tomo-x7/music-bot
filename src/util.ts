@@ -1,13 +1,3 @@
-// config
-import "dotenv/config";
-
-const TOKEN = mustBeString(process.env.TOKEN, "env.TOKEN");
-const VCID = mustBeString(process.env.VC, "env.VCID");
-const SERVERID = mustBeString(process.env.SERVER, "env.SERVER");
-
-export const config = { TOKEN, SERVERID, VCID } as const;
-
-// utils
 import { spawn } from "node:child_process";
 import { createWriteStream, type WriteStream } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";

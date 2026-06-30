@@ -14,6 +14,7 @@ import { ActivityType, Client } from "discord.js";
 import { genCommandEmitter } from "./commands";
 import { env } from "./env";
 import { genEmbed, MusicQueue } from "./queue";
+import { reminder } from "./reminder";
 import { uo } from "./uo";
 import { neverAbort, waitReady } from "./util";
 
@@ -25,8 +26,6 @@ client.on("error", (e) => {
 await rm(join(import.meta.dirname, "../tmp"), { recursive: true, force: true });
 await client.login(env.TOKEN);
 await waitReady(client);
-
-uo(client);
 
 const guild = await client.guilds.fetch(env.SERVER);
 const channel = await (async () => {
@@ -44,6 +43,9 @@ async function notify(status: "success" | "error", text: string) {
 const queue = new MusicQueue();
 const commandEmitter = genCommandEmitter(client);
 const skipEmitter = new EventEmitter<{ skip: [string, (ok: boolean) => void] }>();
+
+uo(client);
+reminder(client, commandEmitter);
 
 client.on("voiceStateUpdate", (oldState, newState) => {
 	const me = client.user?.id;
