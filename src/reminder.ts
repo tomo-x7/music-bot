@@ -74,7 +74,7 @@ export async function reminder(client: Client, commandEmitter: CommandEmitter) {
 								customId: "reminder:suen:done",
 								label: "done",
 								style: ButtonStyle.Success,
-								emoji: { name: "✅️" },
+								emoji: { name: "white_check_mark" },
 							},
 						],
 					},
