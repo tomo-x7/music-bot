@@ -18,7 +18,9 @@ import { reminder } from "./reminder";
 import { uo } from "./uo";
 import { neverAbort, waitReady } from "./util";
 
-const client = new Client({ intents: ["Guilds", "GuildVoiceStates", "MessageContent", "GuildMessages"] });
+const client = new Client({
+	intents: ["Guilds", "GuildVoiceStates", "MessageContent", "GuildMessages", "GuildMembers"],
+});
 client.on("error", (e) => {
 	console.error("client error:", e);
 });
